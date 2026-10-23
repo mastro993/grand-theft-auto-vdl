@@ -1,7 +1,7 @@
 # The map
 
 `pnpm map` runs `src/tools/build-map.ts`. It turns the pinned inputs in `data/raw` into
-`src/sim/map/monzone.bin`, the only map file the game loads (6.7 MB, see
+`src/sim/map/monzone.bin`, the default Lunigiana map (6.7 MB, see
 [File format](#file-format)). The build is deterministic (gunzipped, its output is the same bytes
 on every machine; the gzipped file is byte-identical with the same Node build, while another zlib
 or OS writes other compressed bytes) and takes about 8 s. It prints a lap time per stage
@@ -11,6 +11,43 @@ Inputs and attribution are in the [README](../README.md).
 `src/sim/map/kinds.ts` holds the vocabulary that the build and the game share: road classes and
 their default widths, building styles, area kinds, and the tree-trunk size. It imports no data, so the
 build can use it before `monzone.bin` exists.
+
+## Cesena
+
+Cesena is a separate experimental city-centre map; it loads instead of Lunigiana, not alongside it.
+The pipeline below describes Lunigiana unless a Cesena difference is noted here.
+
+- **Selection**: the title card links to `?map=cesena`; an omitted `map` selects Lunigiana.
+  `src/maps.ts` validates the name before download, and the boot host updates the title and credits.
+  Switching maps reloads the page and starts a fresh world. The links preserve an explicit seed.
+- **Extent**: `region.ts` centres Cesena at latitude 44.1391, longitude 12.2429, with local bounds
+  of -2000 to 2000 m on both axes. This covers a 4 by 4 km city-centre area, not the whole comune.
+- **Accepted sources**: OpenStreetMap (ODbL) supplies roads, buildings, water, land use and names.
+  `pnpm fetch-osm --region cesena` pins a separate `data/raw/cesena.osm.gz` using the tiled API
+  fetcher. Regione Emilia-Romagna's
+  [DTM 5x5 - ultima edizione](https://geoportale.regione.emilia-romagna.it/catalogo/dati-cartografici/altimetria/layer-2)
+  is accepted under the catalogue's CC BY 4.0 licence. `pnpm fetch-rer --region cesena` checks that
+  licence and requests WCS coverage `DTM5X5_RDN32_RMD` as an EPSG:4326 GeoTIFF. The pinned
+  `data/raw/cesena/source.json` records the request and raster SHA-256. `loadGeoDtm` rejects
+  incorrect CRS, incomplete coverage and invalid or missing heights instead of inventing terrain.
+- **Excluded sources**: the Tuscany CTR, LiDAR and UCS inputs do not cover Cesena and are not
+  reused there. No other terrain, building or imagery source is included for Cesena.
+- **Build**: `pnpm map --region cesena` writes only `src/sim/map/cesena.bin`, using the same
+  profiles, collision, road graph, parking and packed format as Lunigiana. The source terrain has
+  5 m cells; resampling onto the game's 4 m grid does not make it a finer survey.
+- **Features**: secondary roads and main-road links use the existing tertiary class; cycleways
+  are walkable paths. OSM building height tags are used where present, otherwise existing default
+  heights apply. Road widths use class defaults. The Savio's width is the median of perpendicular
+  cross-sections through its OSM bank polygons, not the mountain-stream fallback. Neighbourhood
+  labels come from OSM place nodes, without Monzone's hand-placed districts or stone cores.
+- **Start**: the player starts beside a central street in the connected traffic network, outside
+  buildings with an open walk-clear route to the street. Police and station parking use Cesena's
+  mapped Carabinieri headquarters and railway station.
+- **Checks**: `src/tools/cesena.test.ts` checks landmarks, connected networks, the outdoor spawn,
+  nearby cars, measured river widths and deterministic simulation startup. Run `pnpm check` after
+  a build. Preview the map with
+  `node src/tools/preview-map.ts 0.3 -2000,-2000,2000,2000 .research/cesena-preview.png --region cesena`.
+  Repeat builds must have identical decompressed hashes, as for Lunigiana.
 
 ## Pipeline
 
@@ -279,7 +316,10 @@ is the largest connected component of every edge except tunnels.
   (at most one tree per spot) and a scale of 0.8–1.3 (1.7 MB of the gzipped map file). Placement
   uses a fixed hash, not a random generator.
 - **Player spawn**: the Via Cesare Battisti sidewalk nearest the Carabinieri station, with 1.3 m
-  clear of walk and drive walls.
+  clear of walk and drive walls. Cesena uses a central street in its connected traffic network.
+  The final rounded position must lie outside every building footprint and have a walk-clear
+  route to its street centreline, sampled at intervals no greater than 0.5 m. Wall distance alone
+  can accept a point deep inside a building, leaving the player trapped.
 - **Parked spots**: one per 8 buildings (797) on the right kerb of tertiary, unclassified and
   residential roads (not bridges or tunnels), at least 12 m from junctions and 9 m from each
   other, with two or more buildings within 40 m, off every carriageway (tunnels included) and

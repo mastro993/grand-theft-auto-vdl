@@ -5,6 +5,7 @@ import type { District } from "../sim/map/index.ts"
 import type { BuildingF } from "./features.ts"
 import { centroid, inBounds, r1, toLocal } from "./geometry.ts"
 import type { Osm } from "./osm.ts"
+import { REGION } from "./region.ts"
 
 /** Monzone's station, streets and hill clusters: OSM names only Monzone (Alto) and Aiola there. */
 const MONZONE: ReadonlyArray<District> = [
@@ -82,6 +83,12 @@ const RADIUS = { min: 80, max: 400 } // m
  * to RADIUS and rounded to 10 m.
  */
 export const fitDistricts = (osm: Osm, buildings: ReadonlyArray<BuildingF>): Array<District> => {
+  if (REGION.id === "cesena") return [...osm.nodes.values()].flatMap((node) => {
+    const [x, y] = toLocal(node.lat, node.lon)
+    const name = node.tags.name
+    return name !== undefined && ["city", "suburb", "neighbourhood", "village", "hamlet"].includes(node.tags.place ?? "") && inBounds(x, y)
+      ? [{ name, x: r1(x), y: r1(y), r: node.tags.place === "city" ? 1000 : 500 }] : []
+  })
   const inMonzone = (x: number, y: number) => MONZONE.some((d) => Math.hypot(x - d.x, y - d.y) <= d.r)
   const places = [...osm.nodes.values()].flatMap((n) => {
     const [x, y] = toLocal(n.lat, n.lon)

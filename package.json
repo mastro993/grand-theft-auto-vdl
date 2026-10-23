@@ -8,6 +8,7 @@
     "map": "node src/tools/build-map.ts",
     "fetch-osm": "node src/tools/fetch-osm.ts",
     "fetch-rt": "node src/tools/fetch-rt.ts",
+    "fetch-rer": "node src/tools/fetch-rer.ts",
     "dev": "vite --host",
     "build": "vite build",
     "preview": "vite preview"
@@ -25,6 +26,7 @@
     "@typeonce/ritmo-devtools": "^0.10.0",
     "@types/node": "^26.6.5",
     "@types/three": "^0.186.0",
+    "geotiff": "^3.0.5",
     "oxlint": "^1.89.0",
     "typescript": "^7.0.2",
     "vite": "^8.3.4"

@@ -46,7 +46,7 @@
         <div class="pad turn" id="hud-touch-turnLeft">↺</div>
         <div class="pad turn" id="hud-touch-turnRight">↻</div>
       </div>
-      <div class="credits">Map data © OpenStreetMap contributors (ODbL) · Fonte dei dati: Regione Toscana – CTR 1:2000, Rilievi LIDAR, Uso e copertura del suolo (CC BY 4.0), DTM 10x10 (CC BY 3.0 IT)</div>
+      <div class="credits">Map data © OpenStreetMap contributors (ODbL) · Fonte dei dati: Regione Toscana – CTR 1:2000, Rilievi LIDAR, Uso e copertura del suolo (CC BY 4.0), DTM 10x10 (CC BY 3.0 IT) · Cesena: Regione Emilia-Romagna, DTM 5x5 (CC BY 4.0)</div>
     </div>
     <dialog id="settings" aria-labelledby="settings-title">
       <h2 id="settings-title">Settings</h2>
@@ -61,8 +61,9 @@
     </dialog>
     <div id="title">
       <div class="card">
-        <h1><small>Grand Theft Auto</small> Lunigiana</h1>
-        <p class="sub">Monzone · Equi Terme · Vinca · Gragnola — Valle del Lucido (MS)</p>
+        <h1><small>Grand Theft Auto</small> <span id="title-place">Lunigiana</span></h1>
+        <p class="sub" id="title-subtitle">Monzone · Equi Terme · Vinca · Gragnola — Valle del Lucido (MS)</p>
+        <nav id="map-choice" aria-label="Map"><a href="?map=lunigiana">Lunigiana</a> · <a href="?map=cesena">Cesena</a></nav>
         <p class="warn">Il gioco è in fase di sviluppo iniziale <small>early development</small></p>
         <dl class="keys for-touch">
           <div><dt>Left thumb</dt><dd>walk · steer</dd></div>
@@ -85,7 +86,7 @@
           <button id="title-retry" type="button" hidden>Retry</button>
         </div>
         <p class="go" id="title-go" hidden><span class="for-keys">Press any key</span><span class="for-touch">Tap to play</span></p>
-        <p class="fine">Map data © OpenStreetMap contributors (ODbL)<br />Fonte dei dati: Regione Toscana – CTR 1:2000, Rilievi LIDAR,<br />Uso e copertura del suolo (CC BY 4.0), DTM 10x10 (CC BY 3.0 IT)</p>
+        <p class="fine">Map data © OpenStreetMap contributors (ODbL)<br />Fonte dei dati: Regione Toscana – CTR 1:2000, Rilievi LIDAR,<br />Uso e copertura del suolo (CC BY 4.0), DTM 10x10 (CC BY 3.0 IT)<br />Cesena: Regione Emilia-Romagna, DTM 5x5 (CC BY 4.0)</p>
       </div>
     </div>
     <script>

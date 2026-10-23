@@ -13,35 +13,36 @@ import { fitDistricts } from "./districts.ts"
 import { extractAreas, extractBarriers, extractBuildings, extractPois, extractRail, extractRoads, extractWater, nameFromAddresses, type RoadF } from "./features.ts"
 import { along, arcLengths, BOUNDS, crossings, flatLine, M_PER_DEG, ORIGIN, r1, segIndex, type V } from "./geometry.ts"
 import { buildGraph } from "./graph.ts"
+import { REGION } from "./region.ts"
 import { packMap } from "./pack.ts"
 import { readOsm } from "./osm.ts"
 import { chainsOf, lifted, makeProfiler, type Bound, type Linear } from "./profiles.ts"
 import { clearance, parkedSpots, playerSpawn, scatterTrees } from "./spawns.ts"
-import { loadDtm, makeGrid, sampleGrid } from "./terrain.ts"
+import { loadDtm, loadGeoDtm, makeGrid, sampleGrid } from "./terrain.ts"
 import { readUcs } from "./ucs.ts"
 import { buildWalls, clipBuildings, openBarriers } from "./walls.ts"
 import { carveAll, fitUnderDecks, waterLine, waterProfiles, type Crossed } from "./water.ts"
 
 const ROOT = join(import.meta.dirname, "../..")
-const OUT = join(ROOT, "src/sim/map/monzone.bin")
+const OUT = join(ROOT, `src/sim/map/${REGION.file}.bin`)
 const t0 = performance.now()
 const lap = (label: string) => console.log(`${label.padEnd(10)} ${((performance.now() - t0) / 1000).toFixed(2)} s`)
 
-const osm = readOsm(join(ROOT, "data/raw/lunigiana.osm.gz"))
-const ctr = readCtr(join(ROOT, "data/raw/rt/ctr"))
+const osm = readOsm(join(ROOT, `data/raw/${REGION.id}.osm.gz`))
+const ctr = REGION.id === "lunigiana" ? readCtr(join(ROOT, "data/raw/rt/ctr")) : { buildings: [], roadAreas: [], mapped: [] }
 const roads = extractRoads(osm), rail = extractRail(osm)
 fitRoads(roads, ctr.roadAreas, ctr.mapped)
 nameFromAddresses(osm, roads)
 const buildings = clipBuildings(extractBuildings(osm, ctr), roads), barriers = openBarriers(extractBarriers(osm), roads), pois = extractPois(osm)
 const areas = [
   ...extractAreas(osm),
-  ...readUcs(join(ROOT, "data/raw/rt/ucs.json.gz")), // rock, pastures and quarries OSM lacks above the woods
+  ...(REGION.id === "lunigiana" ? readUcs(join(ROOT, "data/raw/rt/ucs.json.gz")) : []), // rock, pastures and quarries OSM lacks above the woods
   ...ctr.roadAreas.filter((a) => a.paved).map((a) => ({ kind: "paved", rings: a.rings })) // squares, lay-bys
 ]
 lap("features")
 
 // ---- terrain: LiDAR -> 4 m grid -> carved water -> roads and rail -> water kept under the decks ----
-const ground = loadDtm(join(ROOT, "data/raw/rt")) // the untouched 1 m terrain every profile samples
+const ground = REGION.id === "lunigiana" ? loadDtm(join(ROOT, "data/raw/rt")) : await loadGeoDtm(join(ROOT, "data/raw/cesena/dtm.tif"))
 const water = extractWater(osm, ground) // widths depend on the way's mean ground
 const grid = makeGrid(ground)
 const at = (x: number, y: number) => sampleGrid(grid, x, y)
@@ -147,8 +148,15 @@ const poi = (id: number) => {
   if (p === undefined) throw new Error(`poi ${id} missing`)
   return p
 }
-const station = poi(1813987803), carabinieri = poi(14183344901)
-const player = playerSpawn(roads, walkClear, driveClear, carabinieri)
+const station = poi(REGION.id === "lunigiana" ? 1813987803 : 827592490), carabinieri = poi(REGION.id === "lunigiana" ? 14183344901 : 806564311)
+const central = REGION.id === "lunigiana" ? [] : graph.traffic.map((edge) => {
+  const node = graph.edges[3 * edge]!, road = graph.edges[3 * edge + 2]!
+  const x = graph.xy[2 * node]!, y = graph.xy[2 * node + 1]!
+  return { road: roads[road]!, x, y, distance: Math.hypot(x, y) }
+}).sort((a, b) => a.distance - b.distance)
+const start = central[0]
+if (REGION.id === "cesena" && start === undefined) throw new Error("Cesena has no connected traffic roads")
+const player = playerSpawn(roads, walkClear, driveClear, start ?? carabinieri, buildings, start?.road)
 const junctions = graph.degree.flatMap((d, n) => (d >= 3 ? [[graph.xy[2 * n]!, graph.xy[2 * n + 1]!] as const] : []))
 const parked = parkedSpots({ roads, buildings, areas, junctions, walk: walkClear, drive: driveClear, avoid: player, station, police: carabinieri })
 lap("spawns")

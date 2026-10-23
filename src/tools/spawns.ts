@@ -116,10 +116,10 @@ type Clearance = ReturnType<typeof clearance>
 
 const CAR_HL = 3.7 / 2, CAR_HW = 1.7 / 2, CAR_GAP = 0.3, SPAWN_R = 1.3 // 1.2 m (map.test.ts) + rounding margin
 
-/** On the Via Cesare Battisti sidewalk in front of the Carabinieri, facing along the street. */
-export const playerSpawn = (roads: ReadonlyArray<RoadF>, walk: Clearance, drive: Clearance, target: { readonly x: number; readonly y: number }): Spawn => {
-  const road = roads.find((r) => r.name === "Via Cesare Battisti")
-  if (road === undefined) throw new Error("Via Cesare Battisti not found")
+/** A clear sidewalk spot outside building footprints, with an open walking route to the street. */
+export const playerSpawn = (roads: ReadonlyArray<RoadF>, walk: Clearance, drive: Clearance, target: { readonly x: number; readonly y: number }, buildings: ReadonlyArray<BuildingF>, preferred?: RoadF): Spawn => {
+  const road = preferred ?? roads.find((r) => r.name === "Via Cesare Battisti")
+  if (road === undefined) throw new Error("Player spawn road not found")
   const s = arcLengths(road.pts)
   let at = 0, best = Number.MAX_VALUE
   for (let d = 0; d <= s.at(-1)!; d += 0.5) {
@@ -131,11 +131,22 @@ export const playerSpawn = (roads: ReadonlyArray<RoadF>, walk: Clearance, drive:
     const p = pointAt(road.pts, s, Math.min(s.at(-1)!, Math.max(0, d)))
     const toward = Math.sign((target.x - p.x) * -p.ty + (target.y - p.y) * p.tx) || 1
     for (const side of [toward, -toward]) {
-      const off = side * (road.w / 2 + 1), x = p.x - p.ty * off, y = p.y + p.tx * off
-      if (walk.circle(x, y, SPAWN_R) && drive.circle(x, y, SPAWN_R)) return { x: r1(x), y: r1(y), angle: Math.round(Math.atan2(p.ty, p.tx) * 1000) / 1000 }
+      const off = side * (road.w / 2 + 1), x = r1(p.x - p.ty * off), y = r1(p.y + p.tx * off)
+      if (!inBounds(x, y, SPAWN_R) || buildings.some((building) => pointInRing(x, y, building.outer))) continue
+      if (!walk.circle(x, y, SPAWN_R) || !drive.circle(x, y, SPAWN_R)) continue
+      const steps = Math.ceil(Math.hypot(x - p.x, y - p.y) / 0.5)
+      let connected = true
+      for (let step = 0; step <= steps; step++) {
+        const fraction = step / steps
+        if (!walk.circle(x + (p.x - x) * fraction, y + (p.y - y) * fraction, SPAWN_R)) {
+          connected = false
+          break
+        }
+      }
+      if (connected) return { x, y, angle: Math.round(Math.atan2(p.ty, p.tx) * 1000) / 1000 }
     }
   }
-  throw new Error("no clear player spawn on Via Cesare Battisti")
+  throw new Error(`No clear player spawn on ${road.name ?? road.id}`)
 }
 
 interface ParkingInput {

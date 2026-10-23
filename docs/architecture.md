@@ -161,9 +161,10 @@ The title card doubles as the loading screen: it says the game is in early devel
 the map, builds in named steps, and asks for a key only once the first frame is drawn.
 
 1. `index.html` is static, so the card shows before any script runs. Its entry, `src/boot.ts`,
-   is a few kB and imports only the card (`src/hud/title.ts`) and the map file's handover
-   (`src/sim/map/packed.ts`), so the bar moves within milliseconds.
-2. `boot.ts` fetches `monzone.bin` (6.7 MB of gzip, a hashed asset) and counts the bytes against
+  imports the card (`src/hud/title.ts`), map selection (`src/maps.ts`) and the map file's
+  handover (`src/sim/map/packed.ts`), keeping simulation setup out of the entry module.
+2. `boot.ts` validates `?map=` and fetches the selected hashed asset: `monzone.bin` by default,
+  or `cesena.bin` for `?map=cesena`. It counts the bytes against
    `Content-Length` (the first 60% of the bar, with MB so far). It gunzips with
    `DecompressionStream` while the file arrives, then hands the bytes to `provideMap`. The file is
    named `.bin`, not `.gz`: Vite's server would label a `.gz` as `Content-Encoding: gzip`, and the

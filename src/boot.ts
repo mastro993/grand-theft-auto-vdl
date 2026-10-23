@@ -7,7 +7,8 @@
  * @module boot
  */
 import { loadFailed, loading, step } from "./hud/title.ts"
-import { MAP_URL, provideMap } from "./sim/map/packed.ts"
+import { mapForSearch } from "./maps.ts"
+import { provideMap } from "./sim/map/packed.ts"
 
 /** Share of the bar the download fills; the build steps share the rest. */
 const DOWNLOAD = 0.6
@@ -34,8 +35,20 @@ const download = async (url: URL): Promise<Uint8Array> => {
 }
 
 try {
+  const map = mapForSearch(location.search)
+  document.title = `Grand Theft Auto: ${map.name}`
+  document.getElementById("title-place")!.textContent = map.name
+  document.getElementById("title-subtitle")!.textContent = map.subtitle
+  if (map.id === "cesena") for (const credit of document.querySelectorAll(".credits, .fine")) credit.textContent = "Map data © OpenStreetMap contributors (ODbL) · Terrain: Regione Emilia-Romagna, DTM 5x5 - ultima edizione (CC BY 4.0)"
+  for (const link of document.querySelectorAll<HTMLAnchorElement>("#map-choice a")) {
+    const url = new URL(link.href)
+    const seed = new URLSearchParams(location.search).get("seed")
+    if (seed !== null) url.searchParams.set("seed", seed)
+    link.href = url.href
+    if (url.searchParams.get("map") === map.id) link.setAttribute("aria-current", "page")
+  }
   loading(document, "Downloading map", 0)
-  provideMap(await download(MAP_URL))
+  provideMap(await download(map.url))
   // Each import evaluates only what the earlier ones left: the map and its collision grids, then
   // the traffic lanes every vehicle model can use, then the rest of the game.
   await step(document, "Decoding map", DOWNLOAD)

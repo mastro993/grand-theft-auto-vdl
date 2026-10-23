@@ -1,11 +1,17 @@
 // Top-down debug render of src/sim/map/monzone.bin -> .research/map-preview.png.
 // Usage: node src/tools/preview-map.ts [pxPerM=1] [minX,minY,maxX,maxY] [out.png]
-import { mkdirSync, writeFileSync } from "node:fs"
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { dirname, join } from "node:path"
+import { gunzipSync } from "node:zlib"
 
-import { type AreaKind, type BuildingStyle, buildingStyleOf, graph, heightAt, isAreaKind, MAP, type RoadClass } from "../sim/map/index.ts"
+import type { AreaKind, BuildingStyle, RoadClass } from "../sim/map/index.ts"
+import { provideMap } from "../sim/map/packed.ts"
 import { fillPolygon, segDist2 } from "./geometry.ts"
 import { encodePngRgb } from "./png.ts"
+import { REGION } from "./region.ts"
+
+provideMap(gunzipSync(readFileSync(join(import.meta.dirname, `../sim/map/${REGION.file}.bin`))))
+const { buildingStyleOf, graph, heightAt, isAreaKind, MAP } = await import("../sim/map/index.ts")
 
 type RGB = readonly [number, number, number]
 const scale = Number(process.argv[2] ?? 1)

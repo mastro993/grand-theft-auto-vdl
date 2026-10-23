@@ -10,9 +10,10 @@ import { join } from "node:path"
 import { gzipSync } from "node:zlib"
 
 import { BOUNDS, fromLocal } from "./geometry.ts"
+import { REGION } from "./region.ts"
 
 const API = "https://api.openstreetmap.org/api/0.6"
-const OUT = join(import.meta.dirname, "../../data/raw/lunigiana.osm.gz")
+const OUT = join(import.meta.dirname, `../../data/raw/${REGION.id}.osm.gz`)
 const MARGIN = 100 // m beyond the play area: ways crossing the edge come whole anyway
 const TILES = 4
 const AREA_KEYS = ["landuse", "natural", "building", "leisure", "amenity"]

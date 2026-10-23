@@ -8,10 +8,13 @@ keys named here are the keyboard's; in mobile mode the touch controls press the 
 ## Start
 
 `SpawnWorld` puts the player on the Via Cesare Battisti sidewalk in front of the Carabinieri
-station. 200 of the map's parked spots (`PARKED`) get a car, picked at random, so the cars spread
-over the villages as the spots do. Spots where a parked car would tilt more than 15° are skipped
-(72 of the 805: the 4 m terrain puts some verges on a bank), and each car settles on its springs
-with the ground's slope. The two spots nearest the station get Carabinieri cars. The rest
+station in Lunigiana, or beside a central connected street in Cesena. The map build rejects
+positions inside buildings and requires an open walking route to the street, so the player can
+leave the starting spot. 200 of the map's parked spots (`PARKED`) get a car, picked at random,
+so the cars spread over the villages as the spots do. Spots where a parked car would tilt more
+than 15° are skipped (in Lunigiana, 72 of the 805: the 4 m terrain puts some verges on a bank),
+and each car settles on its springs with the ground's slope. The two spots nearest the station
+get Carabinieri cars. The rest
 are randomly chosen spots, about 80% Pandas and 20% Apes. On a tertiary-road spot where it fits,
 a roll under 10% makes a marble truck instead, at most two of them. The world's `Rng` makes every
 choice, so `?seed=N` replays the same start.

@@ -1,7 +1,7 @@
 # Grand Theft Auto: Lunigiana
 
 > [!WARNING]
-> **Grand Theft Auto: Lunigiana is in early development.** Today you can play one valley, about 6% of the planned map.
+> **Grand Theft Auto: Lunigiana is in early development.** Today you can play one valley, about 6% of the planned map, and a separate experimental Cesena city-centre map.
 
 ![Title card](docs/screenshots/title.png)
 
@@ -106,6 +106,8 @@ pnpm dev
 
 Then open `http://localhost:5173`. The server listens on the local network too, so a phone or another computer on the same network can play: open the `Network` address that Vite prints. Anyone on that network can reach it, so stop it on a shared network you don't trust. Every load is a new world. Add `?seed=N` (for example `http://localhost:5173/?seed=42`) to replay the same world: the seed drives every random choice, so the same seed and the same keys give the same game.
 
+Choose **Cesena** on the title card, or open `http://localhost:5173/?map=cesena&seed=42`. Cesena is a separate 4 × 4 km map around the historic centre, with the Savio, the railway station and surrounding neighbourhoods. It uses OpenStreetMap streets and building footprints and Regione Emilia-Romagna's 5 m terrain model. It does not replace or extend Lunigiana. Building heights without OSM height tags and road widths are defaults, not surveyed Cesena measurements.
+
 In dev mode, the backslash key toggles the Ritmo monitor, P toggles the debug menu that tunes the vehicle handling (the knobs it changes stay for the next load), and `http://localhost:5173/lab.html` opens the audio audition page: every sound on a button, its params on sliders, heard from a distance you pick (see [docs/audio.md](docs/audio.md#the-audition-page)).
 
 ## Controls on foot and driving
@@ -166,8 +168,11 @@ Every script runs with `pnpm`:
 | `pnpm lint` | `oxlint` with the Ritmo plugin, then `ritmo-devtools lint src/sim/index.ts` |
 | `pnpm test` | `node --test` over `src/**/*.test.ts` |
 | `pnpm map` | rebuilds `src/sim/map/monzone.bin` from `data/raw` |
+| `pnpm map --region cesena` | rebuilds the separate `src/sim/map/cesena.bin` from pinned Cesena inputs |
 | `pnpm fetch-osm` | downloads the OpenStreetMap extract again into `data/raw/lunigiana.osm.gz` |
+| `pnpm fetch-osm --region cesena` | downloads the Cesena extract into `data/raw/cesena.osm.gz` |
 | `pnpm fetch-rt` | downloads the Regione Toscana sources again into `data/raw/rt` |
+| `pnpm fetch-rer --region cesena` | verifies the terrain licence and downloads Emilia-Romagna's DTM into `data/raw/cesena` |
 
 ## Repository layout
 
@@ -177,16 +182,17 @@ The simulation, the browser hosts and the map tools live in separate folders:
 |---|---|
 | `src/sim/` | the simulation: Ritmo schema, systems, collision, routes, drive physics (chassis, tyres, drivetrain, the arcade assists), the handling knobs and presets, tuning. Headless and deterministic |
 | `src/sim/systems/` | one file per system group (spawn, enter/exit, foot, drive, traffic, pedestrians, physics, contacts, populate) |
-| `src/sim/map/` | the generated map (`monzone.bin`), its decoder, types and lookups (heights, walls, road graph, ground elevation, surfaces, land cover) |
+| `src/sim/map/` | the generated maps (`monzone.bin`, `cesena.bin`), their shared decoder, types and lookups (heights, walls, road graph, ground elevation, surfaces, land cover) |
 | `src/render/` | Three.js host code: pixel pipeline, static world meshes, actor meshes, tyre marks and smoke, the render schedule |
 | `src/audio/` | Web Audio host code: the audio schedule, the acoustics director, the speaker and mixer, the synths, the audition page |
 | `src/hud/` | DOM HUD: the title card as loading screen, location names, score, prompt, speedometer, minimap, full map (M), touch controls (mobile mode), settings (Esc) with the vehicle physics, and the dev-only debug menu (P) for the vehicle handling, both setting it through one store |
-| `src/tools/` | the map pipeline (`build-map.ts`), the downloaders (`fetch-osm.ts`, `fetch-rt.ts`) and a top-down preview renderer |
+| `src/tools/` | the region-aware map pipeline (`build-map.ts`, `region.ts`), the downloaders (`fetch-osm.ts`, `fetch-rt.ts`, `fetch-rer.ts`) and a top-down preview renderer |
+| `src/maps.ts` | browser map catalogue and validation of the `?map=` choice |
 | `src/boot.ts` | browser entry: downloads the map with progress, then imports the game |
 | `src/main.ts` | browser host: builds the scene, makes the runtime, runs the fixed loop |
 | `index.html` | canvas, HUD and touch-control markup, title card (the loading screen), and the switch to mobile mode |
 | `lab.html` | the audio audition page (dev server only) |
-| `data/raw/` | pinned map inputs: OSM extract, Regione Toscana CTR and LiDAR |
+| `data/raw/` | pinned map inputs: regional OSM extracts, Regione Toscana CTR and LiDAR, Emilia-Romagna DTM |
 | `docs/` | architecture, map pipeline, gameplay and audio notes; `docs/standards/` holds the checks for each part of the game |
 
 ## Rebuilding the map
@@ -198,6 +204,8 @@ pnpm map
 ```
 
 The build reads only `data/raw` and takes about 8s. Its output is deterministic: with the same inputs, `monzone.bin` (6.7 MB, gzipped) gunzips to the same bytes on every machine, and comes out byte-identical with the same Node build (another zlib or OS compresses differently). Never edit `monzone.bin` by hand.
+
+Build Cesena without changing Lunigiana with `pnpm map --region cesena`. The checked-in inputs are sufficient; only run `pnpm fetch-osm --region cesena` and `pnpm fetch-rer --region cesena` when intentionally updating them. `data/raw/cesena/source.json` records the terrain request, verified CC BY 4.0 licence and raster SHA-256. Preview it with `node src/tools/preview-map.ts 0.3 -2000,-2000,2000,2000 .research/cesena-preview.png --region cesena`, then run `pnpm check`.
 
 The inputs in `data/raw` are:
 
@@ -213,8 +221,9 @@ Downloading the OSM data again pulls current edits, so the map changes; the file
 
 The map uses open data under these licences:
 
-- **OpenStreetMap**: map data © OpenStreetMap contributors, available under the [Open Database License (ODbL) 1.0](https://www.openstreetmap.org/copyright). `monzone.bin` is a derived database and stays under the ODbL.
+- **OpenStreetMap**: map data © OpenStreetMap contributors, available under the [Open Database License (ODbL) 1.0](https://www.openstreetmap.org/copyright). `monzone.bin` and `cesena.bin` are derived databases and stay under the ODbL.
 - **Regione Toscana**: buildings, road surfaces, elevation and land cover, “Fonte dei dati: Regione Toscana – Rilievi LIDAR”, the Carta Tecnica Regionale 1:2000 and the Uso e copertura del suolo 2019, under [Creative Commons Attribution 4.0](https://creativecommons.org/licenses/by/4.0/), and the DTM 10x10 metri, under [Creative Commons Attribution 3.0 Italia](https://creativecommons.org/licenses/by/3.0/it/), from the [Geoscopio cartoteca](https://www502.regione.toscana.it/geoscopio/cartoteca.html).
+- **Regione Emilia-Romagna**: Cesena terrain from [DTM 5x5 - ultima edizione](https://geoportale.regione.emilia-romagna.it/catalogo/dati-cartografici/altimetria/layer-2), under [Creative Commons Attribution 4.0](https://creativecommons.org/licenses/by/4.0/), downloaded through the region's WCS. The game resamples the 5 m source onto its 4 m terrain grid; this does not add survey detail.
 
 The game shows these credits on the title card and in the HUD.
 

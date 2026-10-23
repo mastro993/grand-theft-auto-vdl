@@ -20,6 +20,34 @@ export interface Grid {
 /** Lattice step, m, on which local -> Gauss-Boaga is computed exactly; bilinear in between is exact to well under 1 mm. */
 const PROJ_STEP = 50
 
+/** Samples a geographic GeoTIFF at pixel centres, rejecting missing terrain rather than inventing heights. */
+export const loadGeoDtm = async (file: string): Promise<(x: number, y: number) => number> => {
+  const { fromArrayBuffer } = await import("geotiff")
+  const bytes = readFileSync(file)
+  const tiff = await fromArrayBuffer(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength))
+  const image = await tiff.getImage()
+  const keys = image.getGeoKeys()
+  if (keys === null || keys.GeographicTypeGeoKey !== 4326 || keys.ProjectedCSTypeGeoKey !== undefined) throw new Error("DTM must use EPSG:4326")
+  const [west, south, east, north] = image.getBoundingBox()
+  const cols = image.getWidth(), rows = image.getHeight()
+  if (cols < 2 || rows < 2 || image.getSamplesPerPixel() !== 1) throw new Error("Invalid DTM dimensions")
+  for (const [x, y] of [[BOUNDS.minX - 4, BOUNDS.minY - 4], [BOUNDS.maxX + 4, BOUNDS.maxY + 4]]) {
+    const [lat, lon] = fromLocal(x!, y!)
+    if (lon < west! || lon > east! || lat < south! || lat > north!) throw new Error("DTM does not cover the play area")
+  }
+  const samples = await image.readRasters({ interleave: true })
+  const noData = image.getGDALNoData()
+  if (Array.from(samples).some((z) => !Number.isFinite(z) || z === noData || z < -500 || z > 3000)) throw new Error("DTM contains missing or invalid heights")
+  return (x, y) => {
+    const [lat, lon] = fromLocal(x, y)
+    const fx = (lon - west!) / (east! - west!) * cols - 0.5, fy = (north! - lat) / (north! - south!) * rows - 0.5
+    const col = Math.min(cols - 2, Math.max(0, Math.floor(fx))), row = Math.min(rows - 2, Math.max(0, Math.floor(fy)))
+    const tx = Math.min(1, Math.max(0, fx - col)), ty = Math.min(1, Math.max(0, fy - row))
+    const at = row * cols + col
+    return (samples[at]! * (1 - tx) + samples[at + 1]! * tx) * (1 - ty) + (samples[at + cols]! * (1 - tx) + samples[at + cols + 1]! * tx) * ty
+  }
+}
+
 /**
  * Bilinear sampler in local metres of the LiDAR DTM that `fetch-rt.ts` writes to `dir`
  * (dtm.json + dtm.bin, EPSG:3003, 2 m cells). Outside the crop it holds the edge value.

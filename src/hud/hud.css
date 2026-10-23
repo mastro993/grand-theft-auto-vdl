@@ -65,10 +65,14 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #2c3d22; }
 
 #title { position: fixed; inset: 0; display: grid; place-items: center; background: rgb(23 22 26 / 0.55); color: var(--ink); text-shadow: 2px 2px 0 var(--shadow); }
 #title[hidden] { display: none; }
-#title .card { padding: 24px 32px; background: var(--panel); border: 2px solid var(--accent); text-align: center; }
+#title .card { box-sizing: border-box; max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); overflow-y: auto; padding: 24px 32px; background: var(--panel); border: 2px solid var(--accent); text-align: center; }
 #title h1 { margin: 0; font-size: 40px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.08em; }
 #title h1 small { display: block; font-size: 16px; color: var(--ink); letter-spacing: 0.32em; }
 #title .sub { margin: 4px 0 8px; text-transform: uppercase; }
+#map-choice { margin-bottom: 12px; }
+#map-choice a { color: var(--ink); text-underline-offset: 4px; }
+#map-choice a[aria-current] { color: var(--accent); text-decoration-thickness: 2px; }
+#map-choice a:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
 #title .warn { margin: 0 0 20px; font-size: 13px; text-transform: uppercase; }
 #title .warn small { display: block; font-size: 10px; opacity: 0.75; }
 #title .keys { display: grid; gap: 4px; margin: 0 0 20px; text-align: left; }
@@ -86,6 +90,14 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #2c3d22; }
 #title button { margin: 0 0 16px; padding: 2px 12px; font: inherit; color: var(--shadow); background: var(--accent); border: 2px solid var(--shadow); cursor: pointer; text-shadow: none; }
 #title .go { margin: 0 0 16px; animation: blink 1s steps(2, start) infinite; }
 #title .fine { margin: 0; font-size: 11px; opacity: 0.85; }
+@media (max-width: 520px) {
+  #title .card { padding: 16px; }
+  #title h1 { font-size: 30px; }
+  #title .sub { font-size: 12px; }
+  #title .keys { font-size: 12px; }
+  #title .keys div { grid-template-columns: 12ch 1fr; gap: 8px; }
+  #title .fine { overflow-wrap: anywhere; }
+}
 @keyframes blink { to { visibility: hidden; } }
 @media (prefers-reduced-motion: reduce) { #title .go, #hud-map .marker { animation: none; } }
 

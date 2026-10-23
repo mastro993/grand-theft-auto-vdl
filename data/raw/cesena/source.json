@@ -1,0 +1,7 @@
+{
+  "source": "Regione Emilia-Romagna, DTM 5x5 - ultima edizione",
+  "licence": "CC BY 4.0 (Creative Commons - Attribuzione) https://creativecommons.org/licenses/by/4.0/deed.it",
+  "metadata": "https://geoportale.regione.emilia-romagna.it/++api++/catalogo/dati-cartografici/altimetria/layer-2",
+  "request": "https://servizigis.regione.emilia-romagna.it/wcs/dtm5x5?service=WCS&version=1.0.0&request=GetCoverage&coverage=DTM5X5_RDN32_RMD&crs=EPSG%3A4326&response_crs=EPSG%3A4326&bbox=12.217064131470627%2C44.12052471199079%2C12.268735868529374%2C44.15767528800921&width=826&height=826&format=GeoTIFF&interpolation=bilinear",
+  "sha256": "0bc20d789f9b4bff507dd2488e5ac4bcb2f7db84c6a74780e97035f120fb9fef"
+}
